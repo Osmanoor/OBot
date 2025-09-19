@@ -1,0 +1,209 @@
+{
+  "name": "Weekly Reporting",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                5
+              ],
+              "triggerAtHour": 18
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "db145de8-4fde-42da-98c3-fb5356e82db7",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "app8b1UCtWtKJI5gg",
+          "mode": "list",
+          "cachedResultName": "Options Tracking",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblemVjj89yUgby1E",
+          "mode": "list",
+          "cachedResultName": "Trades",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg/tblemVjj89yUgby1E"
+        },
+        "filterByFormula": "AND({Status} = 'Close', IS_AFTER({Close Date}, DATEADD(TODAY(), -7, 'days')))",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "4e4b0370-136d-4dbd-9e0e-8f025ff7e4bd",
+      "name": "Airtable",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "DcU2YW3xIshsSmKH",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://production-sfo.browserless.io/screenshot",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "2So4qgezoi3LZ9k03d74ebdff6dbb91c524023111c16cc59a"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.payloadString }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "screenshot.png"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "b821a1e7-9592-4e3d-a10f-8aa5550df6dc",
+      "name": "Render Report Image"
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "-1002921695759",
+        "binaryData": true,
+        "binaryPropertyName": "screenshot.png",
+        "additionalFields": {
+          "caption": "Weekly Performance Report"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "c0135137-bd1f-4990-9386-bd9cad48ad42",
+      "name": "Telegram",
+      "webhookId": "ba3c93fb-77b9-4d12-8734-2581ebf51769",
+      "credentials": {
+        "telegramApi": {
+          "id": "fMElMuUVgPDWgTXq",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Get all trades from the previous Airtable node ---\nconst trades = $input.all();\n\n// --- IMPORTANT: Paste your background image's raw Base64 string here ---\nlet rawBackgroundImageBase64 = \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/;\n\n// --- Robust handling for the background image URL ---\nlet finalBackgroundImageUrl = rawBackgroundImageBase64;\nif (rawBackgroundImageBase64 && !rawBackgroundImageBase64.startsWith('data:image')) {\n  finalBackgroundImageUrl = `data:image/png;base64,${rawBackgroundImageBase64}`;\n}\n\n// --- 1. DATA AGGREGATION AND SUMMARY CALCULATIONS ---\nlet summary = {\n  totalTrades: trades.length,\n  winningTrades: 0,\n  losingTrades: 0,\n  totalProfit: 0,\n  totalLoss: 0,\n};\n\nconst tradeRows = [];\n\nfor (const item of trades) {\n  const trade = item.json;\n  \n  // THE FIX: Calculate profit dynamically\n  const entryPrice = parseFloat(trade['Entry Price']) || 0;\n  const exitPrice = parseFloat(trade['Exit Price']) || entryPrice; // Use Peak Price as the exit\n  const profit = exitPrice - entryPrice;\n\n  if (profit > 0) {\n    summary.winningTrades++;\n    summary.totalProfit += profit * 100;\n  } else {\n    summary.losingTrades++;\n    summary.totalLoss += profit * 100;\n  }\n\n  tradeRows.push({\n    symbol: trade.Underlying,\n    entryPrice: entryPrice.toFixed(2),\n    peakPrice: exitPrice.toFixed(2),\n    isWinner: profit > 0,\n  });\n}\n\n\n// --- 2. DYNAMICALLY BUILD THE SVG TABLE ROWS (No changes here) ---\nlet tableRowsSVG = '';\n// ... (The entire table-building for-loop remains exactly the same)\nconst rowHeight = 45;\nconst startY = 320;\nconst midPoint = Math.ceil(tradeRows.length / 2);\nfor (let i = 0; i < midPoint; i++) {\n  const yPos = startY + (i * rowHeight);\n  const leftTrade = tradeRows[i];\n  if (leftTrade) {\n    const peakPriceDisplay = leftTrade.isWinner ? leftTrade.peakPrice : `<tspan fill=\"#F44336\">failed</tspan>`;\n    tableRowsSVG += `<text x=\"75\" y=\"${yPos}\" class=\"text table-text\" text-anchor=\"middle\">${leftTrade.symbol}</text><text x=\"210\" y=\"${yPos}\" class=\"text table-text\" text-anchor=\"middle\">${leftTrade.entryPrice}</text><text x=\"345\" y=\"${yPos}\" class=\"text table-text\" text-anchor=\"middle\">${peakPriceDisplay}</text><line x1=\"10\" y1=\"${yPos + 15}\" x2=\"410\" y2=\"${yPos + 15}\" stroke=\"#FFFFFF\" stroke-opacity=\"0.2\" />`;\n  }\n  const rightTrade = tradeRows[i + midPoint];\n  if (rightTrade) {\n    const peakPriceDisplay = rightTrade.isWinner ? rightTrade.peakPrice : `<tspan fill=\"#F44336\">failed</tspan>`;\n    tableRowsSVG += `<text x=\"485\" y=\"${yPos}\" class=\"text table-text\" text-anchor=\"middle\">${rightTrade.symbol}</text><text x=\"620\" y=\"${yPos}\" class=\"text table-text\" text-anchor=\"middle\">${rightTrade.entryPrice}</text><text x=\"755\" y=\"${yPos}\" class=\"text table-text\" text-anchor=\"middle\">${peakPriceDisplay}</text><line x1=\"420\" y1=\"${yPos + 15}\" x2=\"820\" y2=\"${yPos + 15}\" stroke=\"#FFFFFF\" stroke-opacity=\"0.2\" />`;\n  }\n}\n\n\n// --- 3. CREATE THE MAIN SVG TEMPLATE ---\n// THE FIX: Dynamic \"From - To\" date range\nconst today = new Date();\nconst toDate = today.toLocaleDateString('en-US', { day: 'numeric', month: 'long' });\nconst fromDate = new Date(today.setDate(today.getDate() - 6)).toLocaleDateString('en-US', { day: 'numeric' });\nconst year = new Date().getFullYear();\nconst dateRange = `${fromDate} - ${toDate}, ${year}`;\n\n// THE FIX: SVG now includes a background image layer with opacity\nconst svgTemplate = `\n<svg width=\"830\" height=\"1000\" viewBox=\"0 0 830 1000\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n    <style>\n        /* ... (All original styles remain the same) ... */\n        .text { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; fill: #FFFFFF; }\n        .title { font-size: 48px; font-weight: bold; text-anchor: middle; }\n        .date { font-size: 24px; text-anchor: middle; }\n        .subtitle { font-size: 40px; font-weight: bold; text-anchor: middle; }\n        .table-header { font-size: 20px; font-weight: bold; text-anchor: middle; fill: #000000; }\n        .table-text { font-size: 22px; font-weight: 500; }\n        .summary-label { font-size: 28px; font-weight: bold; text-anchor: end; }\n        .summary-value { font-size: 28px; font-weight: bold; text-anchor: start; }\n        .footer-text { font-size: 16px; text-anchor: end; fill: #A0A0A0; }\n    </style>\n\n    <!-- Base Background Color -->\n    <rect width=\"100%\" height=\"100%\"  />\n\n    <!-- Background Image with Opacity -->\n    <image xlink:href=\"${finalBackgroundImageUrl}\" x=\"0\" y=\"0\" width=\"100%\" height=\"100%\" opacity=\"1\" preserveAspectRatio=\"xMidYMid slice\" />\n\n    <!-- Main Content (Titles, Table, Summary) -->\n    <g opacity=\"0.7\">\n        <text x=\"415\" y=\"80\" class=\"text title\">التقرير الأسبوعي</text>\n        <text x=\"415\" y=\"120\" class=\"text date\">${dateRange}</text>\n        <text x=\"415\" y=\"200\" class=\"text subtitle\">روبوت بيور للأوبشن</text>\n\n        <!-- ... (The rest of the SVG template remains exactly the same) ... -->\n        <rect x=\"10\" y=\"250\" width=\"810\" height=\"40\" fill=\"#E0E0E0\" />\n        <text x=\"75\" y=\"278\" class=\"text table-header\">الشركه</text><text x=\"210\" y=\"278\" class=\"text table-header\">سعر العقد</text><text x=\"345\" y=\"278\" class=\"text table-header\">اعلى سعر وصل له</text>\n        <text x=\"485\" y=\"278\" class=\"text table-header\">الشركه</text><text x=\"620\" y=\"278\" class=\"text table-header\">سعر العقد</text><text x=\"755\" y=\"278\" class=\"text table-header\">اعلى سعر وصل له</text>\n        ${tableRowsSVG}\n        <g transform=\"translate(0, ${startY + (midPoint * rowHeight) + 40})\">\n            <text x=\"780\" y=\"50\" class=\"text summary-label\">إجمالي عدد الصفقات:</text><text x=\"450\" y=\"50\" class=\"text summary-value\">${summary.totalTrades}</text>\n            <text x=\"780\" y=\"100\" class=\"text summary-label\">الصفقات الناجحه:</text><text x=\"450\" y=\"100\" class=\"text summary-value\">${summary.winningTrades}</text>\n            <text x=\"780\" y=\"150\" class=\"text summary-label\">الصفقات الخاسره:</text><text x=\"450\" y=\"150\" class=\"text summary-value\">${summary.losingTrades}</text>\n            <text x=\"780\" y=\"200\" class=\"text summary-label\">أرباح الأسبوع ✅:</text><text x=\"450\" y=\"200\" class=\"text summary-value\" fill=\"#4CAF50\">$ ${summary.totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</text>\n            <text x=\"780\" y=\"250\" class=\"text summary-label\">خسائر الأسبوع ❌:</text><text x=\"450\" y=\"250\" class=\"text summary-value\" fill=\"#F44336\">$ ${Math.abs(summary.totalLoss).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</text>\n        </g>\n        <g transform=\"translate(0, ${startY + (midPoint * rowHeight) + 320})\">\n            <text x=\"800\" y=\"50\" class=\"text footer-text\">ـ التنفيذ يكون بنفس العقد او عقود قريبه جدا.</text><text x=\"800\" y=\"80\" class=\"text footer-text\">ـ يعتبر العقد ناجح بتحقيق ربح ٣٠٪ أو أكثر.</text><text x=\"800\" y=\"110\" class=\"text footer-text\">ـ يتم تسجيل أقصى ربح وأقصى خساره للعقد لقياس جودة الطرح.</text><text x=\"800\" y=\"140\" class=\"text footer-text\">ـ مايتم طرحه لا يعتبر توصيه للشراء أو البيع بأموال حقيقيه بل لغرض التدريب على التداول.</text>\n        </g>\n    </g>\n</svg>\n`;\n\n// --- 4. PREPARE PAYLOAD FOR BROWSERLESS ---\nconst htmlPayload = `\n<!DOCTYPE html>\n<html><head><style>html, body { margin: 0; padding: 0; }</style></head>\n<body>${svgTemplate}</body></html>\n`;\n\nconst browserlessPayload = {\n  html: htmlPayload,\n  options: { type: \"png\" },\n  viewport: { width: 830, height: 1000 }\n};\n\nreturn [{\n  json: {\n    payloadString: JSON.stringify(browserlessPayload)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "d488902a-415f-4445-9d0d-7fdd9061e422",
+      "name": "Generate Weekly Report SVG"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable": {
+      "main": [
+        [
+          {
+            "node": "Generate Weekly Report SVG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render Report Image": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram": {
+      "main": [
+        []
+      ]
+    },
+    "Generate Weekly Report SVG": {
+      "main": [
+        [
+          {
+            "node": "Render Report Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "39ab2e64-59ea-47e5-889d-70108ef563b2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b036d84835e7556c560bea37ff33edb7c20ac2b65dd165fe92837c49995e063c"
+  },
+  "id": "dTB5JfgETBfR4j8J",
+  "tags": []
+}

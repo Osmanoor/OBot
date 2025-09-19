@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Submitted</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #131722;
+            color: #c7d9f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        .container {
+            background-color: #1E2A38;
+            padding: 3rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #26A69A;
+        }
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+        a {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            background-color: #4a5568;
+            color: #FFFFFF;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+        a:hover {
+            background-color: #2d3748;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Request Received!</h1>
+        <p>Your trade for <strong>{{ data.symbol }}</strong> is being processed.<br>Check Telegram for the confirmation alert.</p>
+        <a href="/">Initiate Another Trade</a>
+    </div>
+</body>
+</html>

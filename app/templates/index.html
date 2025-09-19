@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Dashboard</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #131722;
+            color: #c7d9f0;
+            margin: 0;
+            padding: 2rem;
+            font-size: 14px;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+        .container {
+            background-color: #1E2A38;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #FFFFFF;
+            margin-top: 0;
+        }
+        form { display: flex; flex-direction: column; gap: 0.8rem; }
+        label { font-weight: 500; }
+        input, select {
+            padding: 0.6rem;
+            border-radius: 4px;
+            border: 1px solid #4a5568;
+            background-color: #2d3748;
+            color: #c7d9f0;
+            font-size: 0.9rem;
+            width: 100%;
+            box-sizing: border-box; /* Ensures padding doesn't add to width */
+        }
+        input[type="date"] { color-scheme: dark; }
+        button, .btn-close {
+            padding: 0.7rem;
+            border: none;
+            border-radius: 4px;
+            color: #FFFFFF;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-align: center;
+        }
+        button { background-color: #26A69A; }
+        button:hover { background-color: #2bbbad; }
+        .price-range { display: flex; gap: 1rem; }
+        .price-range > div { flex: 1; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #2d3748;
+        }
+        th { background-color: #2d3748; }
+        tr:hover { background-color: #253040; }
+        .price-up { color: #26A69A; }
+        .price-down { color: #F5426C; }
+        .btn-close {
+            background-color: #F5426C;
+            text-decoration: none;
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+        }
+        .btn-close:hover { background-color: #ff5a80; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-grid">
+        <div class="container">
+            <h1>Initiate Trade</h1>
+            <form action="/trade" method="post">
+                <label for="trade_type">Type</label>
+                <select id="trade_type" name="trade_type" required>
+                    <option value="CALL">CALL</option>
+                    <option value="PUT">PUT</option>
+                </select>
+
+                <label for="symbol">Symbol</label>
+                <input type="text" id="symbol" name="symbol" placeholder="e.g., AAPL" required>
+
+                <label for="strike">Strike Price</label>
+                <input type="number" step="any" id="strike" name="strike" placeholder="e.g., 255">
+
+                <label for="expiration">Expiration Date</label>
+                <input type="date" id="expiration" name="expiration">
+
+                <label for="min_volume">Minimum Volume (Optional)</label>
+                <input type="number" id="min_volume" name="min_volume" placeholder="e.g., 100">
+                
+                <p style="text-align: center; margin: 0.5rem 0;">--- OR ---</p>
+
+                <div class="price-range">
+                    <div>
+                        <label for="min_price">Min Price</label>
+                        <input type="number" step="any" id="min_price" name="min_price" placeholder="e.g., 2.5">
+                    </div>
+                    <div>
+                        <label for="max_price">Max Price</label>
+                        <input type="number" step="any" id="max_price" name="max_price" placeholder="e.g., 3.5">
+                    </div>
+                </div>
+
+                <button type="submit">Initiate Trade</button>
+            </form>
+        </div>
+
+        <div class="container">
+            <h2>Active Trades</h2>
+            <table id="active-trades-table">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Type</th>
+                        <th>Entry</th>
+                        <th>Current</th>
+                        <th>Peak</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trade in trades %}
+                    <tr id="trade-{{ trade.id }}">
+                        <td>{{ trade.symbol }}</td>
+                        <td>{{ trade.trade_type.value }}</td>
+                        <td>{{ "%.2f"|format(trade.entry_price) }}</td>
+                        <td class="price-neutral">{{ "%.2f"|format(trade.current_price) }}</td>
+                        <td>{{ "%.2f"|format(trade.peak_price_today) }}</td>
+                        <td>
+                            <form action="/trade/{{ trade.id }}/close" method="post" style="margin:0;">
+                                <button type="submit" class="btn-close">Close</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const tableBody = document.querySelector("#active-trades-table tbody");
+            const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+            const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws`);
+
+            ws.onopen = function(event) {
+                console.log("WebSocket connection established.");
+            };
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                const tradeRow = document.getElementById(`trade-${data.trade_id}`);
+
+                if (data.type === "price_update" && tradeRow) {
+                    const currentPriceCell = tradeRow.children[3];
+                    const peakPriceCell = tradeRow.children[4];
+                    
+                    const oldPrice = parseFloat(currentPriceCell.textContent);
+                    currentPriceCell.textContent = data.current_price.toFixed(2);
+                    peakPriceCell.textContent = data.peak_price.toFixed(2);
+
+                    // Add color indication for price change
+                    currentPriceCell.classList.remove("price-up", "price-down");
+                    if (data.current_price > oldPrice) {
+                        currentPriceCell.classList.add("price-up");
+                    } else if (data.current_price < oldPrice) {
+                        currentPriceCell.classList.add("price-down");
+                    }
+                } else if (data.type === "trade_closed" && tradeRow) {
+                    tradeRow.remove();
+                }
+            };
+
+            ws.onclose = function(event) {
+                console.log("WebSocket connection closed. Attempting to reconnect...");
+                setTimeout(() => {
+                    // Logic to reconnect can be added here
+                }, 3000);
+            };
+
+            ws.onerror = function(error) {
+                console.error("WebSocket error:", error);
+            };
+        });
+    </script>
+</body>
+</html>

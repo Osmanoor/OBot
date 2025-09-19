@@ -1,0 +1,2453 @@
+{
+  "name": "Price & Peak Tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        340
+      ],
+      "id": "e18fb8df-9098-496f-9c26-f00d9b8fd378",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "app8b1UCtWtKJI5gg",
+          "mode": "list",
+          "cachedResultName": "Options Tracking",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblemVjj89yUgby1E",
+          "mode": "list",
+          "cachedResultName": "Trades",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg/tblemVjj89yUgby1E"
+        },
+        "filterByFormula": "{Status} = 'Active'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        440,
+        340
+      ],
+      "id": "913d6111-b5f9-4f8b-b5a8-08bd2c539e17",
+      "name": "Airtable",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "DcU2YW3xIshsSmKH",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.marketdata.app/v1/options/chain/{{ $json.Underlying }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "side",
+              "value": "={{ $json.Type.toLowerCase() }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            },
+            {
+              "name": "strike",
+              "value": "={{ $json.Strike }}"
+            },
+            {
+              "name": "expiration",
+              "value": "={{ $json['Expiration Date'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        440
+      ],
+      "id": "b0e42834-4c05-4fba-ab13-f3fd4dcd482d",
+      "name": "Get Quote",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "J55xb5Rc54GhkhkK",
+          "name": "Bearer Auth account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "app8b1UCtWtKJI5gg",
+          "mode": "list",
+          "cachedResultName": "Options Tracking",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblemVjj89yUgby1E",
+          "mode": "list",
+          "cachedResultName": "Trades",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg/tblemVjj89yUgby1E"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Current Price": "={{ $json.new_price }}",
+            "Peak Price Today": "={{ $json.new_price }}",
+            "id": "={{ $('Airtable').item.json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Symbol",
+              "displayName": "Symbol",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PUT",
+                  "value": "PUT"
+                },
+                {
+                  "name": "CALL",
+                  "value": "CALL"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Underlying",
+              "displayName": "Underlying",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Strike",
+              "displayName": "Strike",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Entry Price",
+              "displayName": "Entry Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Current Price",
+              "displayName": "Current Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Ask",
+              "displayName": "Ask",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Volume",
+              "displayName": "Volume",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "OI",
+              "displayName": "OI",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Delta",
+              "displayName": "Delta",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Active",
+                  "value": "Active"
+                },
+                {
+                  "name": "Close",
+                  "value": "Close"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Last Update",
+              "displayName": "Last Update",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Multiplier",
+              "displayName": "Multiplier",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Peak Price Today",
+              "displayName": "Peak Price Today",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Exit Price",
+              "displayName": "Exit Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Profit",
+              "displayName": "Profit",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Close Date",
+              "displayName": "Close Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1980,
+        240
+      ],
+      "id": "7ae51eaf-ddf7-489e-86da-457c9af866cd",
+      "name": "Update Peak",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "DcU2YW3xIshsSmKH",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// --- Source 1: Get the updated trade record from the 'Update Peak' node ---\nconst updatedRecord = $('Update Peak').item.json;\n\n// --- Source 2: Get the live stock data from the 'Get Underlying Quote' node ---\nconst underlyingQuote = $('Get Underlying Quote')?.item?.json || {};\nconst underlyingPrice = Array.isArray(underlyingQuote.last) ? (underlyingQuote.last[0] || 0) : 0;\nconst underlyingChangeValue = Array.isArray(underlyingQuote.change) ? (underlyingQuote.change[0] || 0) : 0;\nconst underlyingChangePercent = Array.isArray(underlyingQuote.changepct) ? ((underlyingQuote.changepct[0] || 0) * 100) : 0;\n\n\n// --- Calculations using your original logic ---\nconst entryPrice = parseFloat(updatedRecord.fields['Entry Price']) || 0;\nconst newPrice = parseFloat(updatedRecord.fields['Peak Price Today']) || 0;\n\nconst priceChangeValue = newPrice - entryPrice;\nconst priceChangePercent = entryPrice !== 0 ? (priceChangeValue / entryPrice) * 100 : 0;\n\n// --- Construct the payload, now with live underlying data ---\nconst payload = {\n  template_type: \"new_trade\",\n  data: {\n    // Data sourced from 'Update Peak'\n    underlying: updatedRecord.fields.Underlying,\n    strike_price: updatedRecord.fields.Strike,\n    expiration_date: updatedRecord.fields['Expiration Date'],\n    type: updatedRecord.fields.Type,\n    open_interest: updatedRecord.fields.OI,\n    volume: updatedRecord.fields.Volume,\n    \n    // Your original calculated values\n    last_price: newPrice,\n    price_change_value: priceChangeValue,\n    price_change_percent: priceChangePercent,\n    mid_price: newPrice,\n    \n    status: \"Update\",\n    \"goal_caption\": $('Check for Goal Achievement').item.json.finalCaption ,\n    time: $now.toFormat('HH:mm dd/MM'),\n    \n    // THE UPDATE: Data sourced from 'Get Underlying Quote'\n    underlying_price: underlyingPrice,\n    underlying_change_value: underlyingChangeValue,\n    underlying_change_percent: underlyingChangePercent\n  }\n};\n\n// --- Final Output ---\n// Your original return structure was slightly off, this is the corrected version\nreturn {\n  json: {\n    payloadString: JSON.stringify(payload)\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        340
+      ],
+      "id": "3e23ceea-36f3-4409-afec-a73da35af7ac",
+      "name": "Prepare Alert Payload"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const quote = $input.item.json;\n\n// Start with the original data from the previous step (Airtable fields etc.)\nconst outputData = $input.item.json;\n\n// Check if the quote was successful\nif (!quote || quote.s === 'no_data' || quote.last.length === 0) {\n  // If no data, use the original price\n  outputData.new_price = $json.fields['Current Price'];\n} else {\n  // If successful, calculate and add the new mid price\n  const newPrice = (quote.bid[0] + quote.ask[0]) / 2;\n  outputData.new_price = parseFloat(newPrice.toFixed(2));\n}\n\n// Return ALL the original data PLUS the new_price\nreturn outputData;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        340
+      ],
+      "id": "01cc60e0-7731-479f-ba64-2ad626cea86c",
+      "name": "Format Quote Response"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.marketdata.app/v1/stocks/prices/{{ $('Format Quote Response').item.json.underlying }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        240
+      ],
+      "id": "4fa207b1-c0ca-4315-bc54-c2e90e19fab3",
+      "name": "Get Underlying Quote",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "J55xb5Rc54GhkhkK",
+          "name": "Bearer Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.srv872032.hstgr.cloud/webhook/image",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.payloadString }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3080,
+        340
+      ],
+      "id": "229c2b20-8ab4-44c6-b420-faed27da04d5",
+      "name": "Call Image Generator for Peak"
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "destinationKey": "entryImageBase64",
+        "options": {
+          "keepSource": "both"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        3300,
+        340
+      ],
+      "id": "16c4ff67-cc99-4c8f-b209-1fbdc982da21",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "-1002921695759",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "={{ $('Check for Goal Achievement').item.json.finalCaption }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3520,
+        440
+      ],
+      "id": "572d113f-125c-494c-a4ef-5d16aa863ed1",
+      "name": "Telegram",
+      "webhookId": "8ab29b78-87cc-41bc-8e49-72a48066cb13",
+      "credentials": {
+        "telegramApi": {
+          "id": "fMElMuUVgPDWgTXq",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "app8b1UCtWtKJI5gg",
+          "mode": "list",
+          "cachedResultName": "Options Tracking",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblemVjj89yUgby1E",
+          "mode": "list",
+          "cachedResultName": "Trades",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg/tblemVjj89yUgby1E"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Airtable').item.json.id }}",
+            "Peak Image": "={{ $json.entryImageBase64 }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Symbol",
+              "displayName": "Symbol",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PUT",
+                  "value": "PUT"
+                },
+                {
+                  "name": "CALL",
+                  "value": "CALL"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Underlying",
+              "displayName": "Underlying",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Strike",
+              "displayName": "Strike",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Entry Price",
+              "displayName": "Entry Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Current Price",
+              "displayName": "Current Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Peak Price Today",
+              "displayName": "Peak Price Today",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Ask",
+              "displayName": "Ask",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Volume",
+              "displayName": "Volume",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "OI",
+              "displayName": "OI",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Delta",
+              "displayName": "Delta",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Active",
+                  "value": "Active"
+                },
+                {
+                  "name": "Close",
+                  "value": "Close"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Expiration Date",
+              "displayName": "Expiration Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Exit Price",
+              "displayName": "Exit Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Profit",
+              "displayName": "Profit",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Close Date",
+              "displayName": "Close Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Entry Image",
+              "displayName": "Entry Image",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Peak Image",
+              "displayName": "Peak Image",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        3520,
+        240
+      ],
+      "id": "334f0215-448f-4043-b073-c0472fef6db9",
+      "name": "Save Peak Image",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "DcU2YW3xIshsSmKH",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const tradeFields = $json;\n\n\nconst expirationDateString = tradeFields['Expiration Date'];\nlet isExpired = false;\n\nif (expirationDateString) {\n    const expDate = new Date(expirationDateString);\n    // Set expiration to the end of the US trading day (4 PM EST is 21:00 or 22:00 UTC)\n    expDate.setUTCHours(20, 0, 0, 0); \n    \n    // Check if the expiration date is in the past\n    if (expDate < new Date()) {\n        isExpired = true;\n    }\n}\n\nreturn {\n    json: {\n        ...$json, // Pass through all original Airtable data\n        isExpired: isExpired\n    }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        340
+      ],
+      "id": "56866012-6c74-4d50-b435-5988ff4b4235",
+      "name": "Check Expiration"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dd9ace05-1317-42a6-b326-269f878b0ee0",
+              "leftValue": "={{ $json.isExpired }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        340
+      ],
+      "id": "deea547d-f2de-4e60-b85d-e7c81b5c153a",
+      "name": "Is Expired?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "84df9400-59aa-4bc8-88d4-d6059bb3a8e4",
+              "leftValue": "={{ parseFloat($json.new_price) }}",
+              "rightValue": "={{ parseFloat($('Airtable').item.json['Entry Price']) * 0.5 }}",
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        -120
+      ],
+      "id": "17e7e2b1-caab-46a6-bf19-45639c09c882",
+      "name": "Check Stop Loss?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "app8b1UCtWtKJI5gg",
+          "mode": "list",
+          "cachedResultName": "Options Tracking",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblemVjj89yUgby1E",
+          "mode": "list",
+          "cachedResultName": "Trades",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg/tblemVjj89yUgby1E"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Close",
+            "Close Date": "={{ new Date($now).toISOString() }}",
+            "Close Reason": "Stop Loss",
+            "id": "={{ $('Airtable').item.json.id }}",
+            "Exit Price": "={{ $json.new_price }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Symbol",
+              "displayName": "Symbol",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PUT",
+                  "value": "PUT"
+                },
+                {
+                  "name": "CALL",
+                  "value": "CALL"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Underlying",
+              "displayName": "Underlying",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Strike",
+              "displayName": "Strike",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Entry Price",
+              "displayName": "Entry Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Current Price",
+              "displayName": "Current Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Peak Price Today",
+              "displayName": "Peak Price Today",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Ask",
+              "displayName": "Ask",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Volume",
+              "displayName": "Volume",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "OI",
+              "displayName": "OI",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Delta",
+              "displayName": "Delta",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Active",
+                  "value": "Active"
+                },
+                {
+                  "name": "Close",
+                  "value": "Close"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Expiration Date",
+              "displayName": "Expiration Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Exit Price",
+              "displayName": "Exit Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Profit",
+              "displayName": "Profit",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Close Date",
+              "displayName": "Close Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Close Reason",
+              "displayName": "Close Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Entry Image",
+              "displayName": "Entry Image",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Peak Image",
+              "displayName": "Peak Image",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Last Goal Achieved",
+              "displayName": "Last Goal Achieved",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        220,
+        -120
+      ],
+      "id": "cfd901c0-46f8-4d0c-8c3f-1c61a078eacb",
+      "name": "Close Stop Loss Trade",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "DcU2YW3xIshsSmKH",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "app8b1UCtWtKJI5gg",
+          "mode": "list",
+          "cachedResultName": "Options Tracking",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblemVjj89yUgby1E",
+          "mode": "list",
+          "cachedResultName": "Trades",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg/tblemVjj89yUgby1E"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Close",
+            "Close Date": "={{ new Date($now).toISOString() }}",
+            "Close Reason": "Expired",
+            "id": "={{ $json.id }}",
+            "Exit Price": "={{ $json[\"Current Price\"] }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Symbol",
+              "displayName": "Symbol",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PUT",
+                  "value": "PUT"
+                },
+                {
+                  "name": "CALL",
+                  "value": "CALL"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Underlying",
+              "displayName": "Underlying",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Strike",
+              "displayName": "Strike",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Entry Price",
+              "displayName": "Entry Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Current Price",
+              "displayName": "Current Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Peak Price Today",
+              "displayName": "Peak Price Today",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Ask",
+              "displayName": "Ask",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Volume",
+              "displayName": "Volume",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "OI",
+              "displayName": "OI",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Delta",
+              "displayName": "Delta",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Active",
+                  "value": "Active"
+                },
+                {
+                  "name": "Close",
+                  "value": "Close"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Expiration Date",
+              "displayName": "Expiration Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Exit Price",
+              "displayName": "Exit Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Profit",
+              "displayName": "Profit",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Close Date",
+              "displayName": "Close Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Close Reason",
+              "displayName": "Close Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Entry Image",
+              "displayName": "Entry Image",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Peak Image",
+              "displayName": "Peak Image",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Last Goal Achieved",
+              "displayName": "Last Goal Achieved",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1100,
+        240
+      ],
+      "id": "af47c18a-9db6-4be3-9b48-e76d1fef9002",
+      "name": "Close Expired Trade",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "DcU2YW3xIshsSmKH",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const airtableData = $('Airtable').item.json;\nconst newPrice = $('Format Quote Response').item.json.new_price;\nconst entryPrice = parseFloat(airtableData['Entry Price']);\nconst lastGoal = parseInt(airtableData['Last Goal Achieved']) || 0;\n\nlet newGoal = lastGoal;\n// Default caption if no new goal is met\nlet finalCaption = `تحديث السعر: ${airtableData.Underlying} $${airtableData.Strike}`;\n\n// Check goals in descending order to only announce the highest one achieved\nif (newPrice >= entryPrice * 2.5 && lastGoal < 5) { newGoal = 5; finalCaption = \"تم تحقيق الهدف الخامس\"; }\nelse if (newPrice >= entryPrice * 2.2 && lastGoal < 4) { newGoal = 4; finalCaption = \"تم تحقيق الهدف الرابع\"; }\nelse if (newPrice >= entryPrice * 1.9 && lastGoal < 3) { newGoal = 3; finalCaption = \"تم تحقيق الهدف الثالث\"; }\nelse if (newPrice >= entryPrice * 1.6 && lastGoal < 2) { newGoal = 2; finalCaption = \"تم تحقيق الهدف الثاني\"; }\nelse if (newPrice >= entryPrice * 1.3 && lastGoal < 1) { newGoal = 1; finalCaption = \" تم تحقيق الهدف الاول والخروج من الصفقة بنجاح |  اذا تريد الاستمرار في العقد ارفع وقفك على هذا السعر \"; }\n\nreturn {\n    json: {\n        newGoal: newGoal,\n        finalCaption: finalCaption,\n        shouldUpdateGoal: newGoal > lastGoal\n    }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        240
+      ],
+      "id": "e5aab6a3-c8e7-4ee2-a88a-625678ba90fa",
+      "name": "Check for Goal Achievement"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b66967d9-fe07-4238-bb2d-75bad5a943a4",
+              "leftValue": "={{ $json.shouldUpdateGoal }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2640,
+        240
+      ],
+      "id": "1b1a3e0d-209a-4163-a434-1b29d0e030ec",
+      "name": "Should Update Goal?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "app8b1UCtWtKJI5gg",
+          "mode": "list",
+          "cachedResultName": "Options Tracking",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblemVjj89yUgby1E",
+          "mode": "list",
+          "cachedResultName": "Trades",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg/tblemVjj89yUgby1E"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Airtable').item.json.id }}",
+            "Last Goal Achieved": "={{ $json.newGoal }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Symbol",
+              "displayName": "Symbol",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PUT",
+                  "value": "PUT"
+                },
+                {
+                  "name": "CALL",
+                  "value": "CALL"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Underlying",
+              "displayName": "Underlying",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Strike",
+              "displayName": "Strike",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Entry Price",
+              "displayName": "Entry Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Current Price",
+              "displayName": "Current Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Peak Price Today",
+              "displayName": "Peak Price Today",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Ask",
+              "displayName": "Ask",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Volume",
+              "displayName": "Volume",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "OI",
+              "displayName": "OI",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Delta",
+              "displayName": "Delta",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Active",
+                  "value": "Active"
+                },
+                {
+                  "name": "Close",
+                  "value": "Close"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Expiration Date",
+              "displayName": "Expiration Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Exit Price",
+              "displayName": "Exit Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Profit",
+              "displayName": "Profit",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Close Date",
+              "displayName": "Close Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Close Reason",
+              "displayName": "Close Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Entry Image",
+              "displayName": "Entry Image",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Peak Image",
+              "displayName": "Peak Image",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Last Goal Achieved",
+              "displayName": "Last Goal Achieved",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2860,
+        140
+      ],
+      "id": "56d6fc22-b031-4c58-ad91-004980ed9783",
+      "name": "Update Goal Number",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "DcU2YW3xIshsSmKH",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a8c49c04-6043-4cfb-b5b7-043701ce1661",
+              "leftValue": "={{ parseFloat($json.new_price) }}",
+              "rightValue": "={{ parseFloat($('Airtable').item.json['Peak Price Today']) + 0.1 }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        340
+      ],
+      "id": "6ed208bb-e0f6-4678-8f22-8c08bf90caf9",
+      "name": "Is it new Peak?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "app8b1UCtWtKJI5gg",
+          "mode": "list",
+          "cachedResultName": "Options Tracking",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblemVjj89yUgby1E",
+          "mode": "list",
+          "cachedResultName": "Trades",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg/tblemVjj89yUgby1E"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Current Price": "={{ $json.new_price }}",
+            "id": "={{ $('Airtable').item.json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Symbol",
+              "displayName": "Symbol",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PUT",
+                  "value": "PUT"
+                },
+                {
+                  "name": "CALL",
+                  "value": "CALL"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Underlying",
+              "displayName": "Underlying",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Strike",
+              "displayName": "Strike",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Entry Price",
+              "displayName": "Entry Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Current Price",
+              "displayName": "Current Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Ask",
+              "displayName": "Ask",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Volume",
+              "displayName": "Volume",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "OI",
+              "displayName": "OI",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Delta",
+              "displayName": "Delta",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Active",
+                  "value": "Active"
+                },
+                {
+                  "name": "Close",
+                  "value": "Close"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Last Update",
+              "displayName": "Last Update",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Multiplier",
+              "displayName": "Multiplier",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Peak Price Today",
+              "displayName": "Peak Price Today",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Exit Price",
+              "displayName": "Exit Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Profit",
+              "displayName": "Profit",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Close Date",
+              "displayName": "Close Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1980,
+        440
+      ],
+      "id": "2f715494-8ed0-4c33-9f16-c2ae541093ca",
+      "name": "Update Current",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "DcU2YW3xIshsSmKH",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "5669426889",
+        "text": "=Error with updating: {{ $json.Type }} {{ $json.Underlying }}\ncode: {{ $json.error.code }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        540
+      ],
+      "id": "16202680-b867-4ac8-9dba-23fd8738fc7f",
+      "name": "Notify Admin",
+      "webhookId": "615350c3-283e-4c53-9a2f-03d206768cbb",
+      "credentials": {
+        "telegramApi": {
+          "id": "fMElMuUVgPDWgTXq",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "08f7d4dd-8829-4e60-8e41-234fb0ebc439",
+              "leftValue": "={{ $now.weekday }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            },
+            {
+              "id": "4ab98b81-8a5f-4d8d-b549-fec7d11c33bf",
+              "leftValue": "={{ $now.hour * 100 + $now.minute }}",
+              "rightValue": 600,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "4f0340f7-b137-4afc-8b43-5a4e2df567e6",
+              "leftValue": "={{ $now.hour * 100 + $now.minute }}",
+              "rightValue": 2201,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        220,
+        340
+      ],
+      "id": "5d778601-c02b-4f96-bb51-ca12c943c428",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable": {
+      "main": [
+        [
+          {
+            "node": "Check Expiration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Quote": {
+      "main": [
+        [
+          {
+            "node": "Format Quote Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Update Peak": {
+      "main": [
+        [
+          {
+            "node": "Get Underlying Quote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Alert Payload": {
+      "main": [
+        [
+          {
+            "node": "Call Image Generator for Peak",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Quote Response": {
+      "main": [
+        [
+          {
+            "node": "Is it new Peak?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Underlying Quote": {
+      "main": [
+        [
+          {
+            "node": "Check for Goal Achievement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Image Generator for Peak": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Save Peak Image",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Expiration": {
+      "main": [
+        [
+          {
+            "node": "Is Expired?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Expired?": {
+      "main": [
+        [
+          {
+            "node": "Close Expired Trade",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Quote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Stop Loss?": {
+      "main": [
+        [
+          {
+            "node": "Close Stop Loss Trade",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Check for Goal Achievement": {
+      "main": [
+        [
+          {
+            "node": "Should Update Goal?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Update Goal?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Alert Payload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update Goal Number",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Alert Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is it new Peak?": {
+      "main": [
+        [
+          {
+            "node": "Update Peak",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Current",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "15ebfdc0-ded3-449a-9160-1a628c9c332c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b036d84835e7556c560bea37ff33edb7c20ac2b65dd165fe92837c49995e063c"
+  },
+  "id": "PCfpULcxv7calA9P",
+  "tags": []
+}

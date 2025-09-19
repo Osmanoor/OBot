@@ -1,0 +1,9 @@
+fastapi
+jinja2
+uvicorn[standard]
+sqlalchemy
+python-dotenv
+requests
+pyppeteer
+apscheduler
+python-multipart

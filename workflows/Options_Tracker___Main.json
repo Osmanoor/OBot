@@ -1,0 +1,605 @@
+{
+  "name": "Options Tracker - Main",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "channel_post"
+        ],
+        "additionalFields": {
+          "chatIds": "5669426889,785521111"
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        200
+      ],
+      "id": "f2d6976f-4016-444f-b23b-b82e9a7cad8d",
+      "name": "Telegram Trigger",
+      "webhookId": "6e1893c7-c835-4c08-8e39-d8da9a6cbedc",
+      "credentials": {
+        "telegramApi": {
+          "id": "fMElMuUVgPDWgTXq",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = $json.message.text;\nconst parts = message.trim().split(' ').filter(p => p !== '');\n\nif (parts.length < 2) {\n  throw new Error(\"Invalid format. Use: CALL/PUT SYMBOL [STRIKE] [EXP_DATE] [MIN-MAX_PRICE]\");\n}\n\n// --- Initialize with default values ---\nconst command = {\n  optionType: parts[0].toUpperCase(),\n  symbol: parts[1].toUpperCase(),\n  strike: null,\n  expiration: null, // Starts as null\n  minPrice: 2.5,\n  maxPrice: 3.5\n};\n\n// --- Loop through optional parts to parse the message ---\nfor (let i = 2; i < parts.length; i++) {\n  const part = parts[i];\n  if (part.includes('-') && part.split('-').length === 2 && !isNaN(part.split('-')[0])) {\n    const prices = part.split('-');\n    command.minPrice = parseFloat(prices[0]);\n    command.maxPrice = parseFloat(prices[1]);\n  } else if (part.includes('-')) {\n    // If a date is found in the message, it gets assigned here\n    command.expiration = part;\n  } else if (!isNaN(part)) {\n    command.strike = parseFloat(part);\n    command.minPrice = null;\n    command.maxPrice = null;\n  }\n}\n\n// --- START OF ADDED LOGIC ---\n// If after parsing, no expiration date was found in the message, use today's date.\nif (command.expiration === null) {\n  const today = new Date();\n  const year = today.getFullYear();\n  // getMonth() is 0-indexed (0=Jan), so add 1. padStart ensures 'MM' format.\n  const month = String(today.getMonth() + 1).padStart(2, '0');\n  // padStart ensures 'DD' format.\n  const day = String(today.getDate()).padStart(2, '0');\n  \n  // Assign today's date in YYYY-MM-DD format\n  command.expiration = `${year}-${month}-${day}`;\n}\n// --- END OF ADDED LOGIC ---\n\n\n// --- Prepare the final API parameters object ---\nconst apiParams = {\n  side: command.optionType.toLowerCase(),\n  inTheMoney: false,\n  dte_gte: 1 // Default to non-expired contracts\n};\n\nif (command.strike === null) {\n  apiParams.minBid = command.minPrice;\n  apiParams.maxAsk = command.maxPrice;\n}\n\n// Only add strike and expiration to the object if they exist\nif (command.strike !== null) {\n  apiParams.strike = command.strike;\n}\n\n// This will now always have a value (either from the user or from the logic above)\nif (command.expiration !== null) {\n  apiParams.expiration = command.expiration;\n}\n\n\n// --- Return both the parsed command and the ready-to-use API params ---\nreturn [{\n  json: {\n    ...command, // Keep the original parsed values for other nodes\n    apiParams: apiParams // Add the new object\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        200
+      ],
+      "id": "f14c4506-1dbd-4779-88e9-59a43def63d0",
+      "name": "Parse Command"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.marketdata.app/v1/options/chain/{{ $('Parse Command').item.json.symbol }}/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "jsonQuery": "={{ $('Parse Command').item.json.apiParams.toJsonString() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        200
+      ],
+      "id": "105f1b2a-11da-4b87-8637-8f4d4d64e898",
+      "name": "Search Options API",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "J55xb5Rc54GhkhkK",
+          "name": "Bearer Auth account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const apiResponse = $input.first().json;\n\n// Check if any options were returned\nif (!apiResponse || apiResponse.optionSymbol.length === 0) {\n  throw new Error(\"No options found matching the criteria.\");\n}\n\n// Get the first option from the array\nconst option = {\n  optionSymbol: apiResponse.optionSymbol[0],\n  underlying: apiResponse.underlying[0],\n  expiration: apiResponse.expiration[0],\n  side: apiResponse.side[0],\n  strike: apiResponse.strike[0],\n  last: apiResponse.last[0],\n  bid: apiResponse.bid[0],\n  ask: apiResponse.ask[0],\n  mid: (apiResponse.bid[0] + apiResponse.ask[0]) / 2,\n  volume: apiResponse.volume[0],\n  openInterest: apiResponse.openInterest[0],\n  delta: apiResponse.delta[0],\n  underlying_price: apiResponse.underlyingPrice[0]\n};\n\n// Reformat the data to match the structure your workflow expects\nconst formattedOption = {\n  symbol: option.optionSymbol,\n  type: option.side.toUpperCase(),\n  underlying: option.underlying,\n  strike_price: option.strike,\n  last_price: option.last,\n  bid: option.bid,\n  ask: option.ask,\n  mid: option.mid,\n  volume: option.volume,\n  open_interest: option.openInterest,\n  delta: option.delta,\n  underlying_price: option.underlying_price,\n  // Convert Unix timestamp (seconds) to ISO date string\n  expiration_date: new Date(option.expiration * 1000).toISOString()\n};\n\n\n// --- NEW: Calculate and Prepare Individual Goal Values ---\nconst entry = formattedOption.mid;\nconst goal1 = (entry * 1.3).toFixed(2);\nconst goal2 = (entry * 1.6).toFixed(2);\nconst goal3 = (entry * 1.9).toFixed(2);\nconst goal4 = (entry * 2.2).toFixed(2);\nconst goal5 = (entry * 2.5).toFixed(2);\nconst stopLoss = (entry * 0.5).toFixed(2);\n\n\n// --- Final Return Statement ---\n// Return the formatted trade data AND the individual goal values\nreturn [{\n  json: {\n    ...formattedOption,\n    goal1: goal1,\n    goal2: goal2,\n    goal3: goal3,\n    goal4: goal4,\n    goal5: goal5,\n    stopLoss: stopLoss\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        100
+      ],
+      "id": "0aa131d4-f956-4c8e-8417-6d1acb6cbfc1",
+      "name": "Adapt API Response"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.srv872032.hstgr.cloud/webhook/image",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    \"template_type\": \"new_trade\",\n    \"data\": {\n      \"underlying\": $('Adapt API Response').item.json.underlying,\n      \"strike_price\": $('Adapt API Response').item.json.strike_price,\n      \"expiration_date\": $('Adapt API Response').item.json.expiration_date,\n      \"type\": $('Adapt API Response').item.json.type,\n      \"last_price\": $('Adapt API Response').item.json.mid,\n      \"mid_price\": ($('Adapt API Response').item.json.bid + $('Adapt API Response').item.json.ask) / 2,\n      \"open_interest\": $('Adapt API Response').item.json.open_interest,\n      \"volume\": $('Adapt API Response').item.json.volume,\n      \"status\": \"Open\",\n      \"time\": $now.toFormat('HH:mm dd/MM'),\n      \"price_change_value\": 0,\n      \"price_change_percent\": 0,\n      \"underlying_price\": $('Adapt API Response').item.json.underlying_price,\n      \"underlying_change_value\": 0,\n      \"underlying_change_percent\": 0\n    }\n  }\n}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        100
+      ],
+      "id": "d0cb4e7e-220c-418c-90fb-0040f5d54332",
+      "name": "Call Image Generator"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "app8b1UCtWtKJI5gg",
+          "mode": "list",
+          "cachedResultName": "Options Tracking",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblemVjj89yUgby1E",
+          "mode": "list",
+          "cachedResultName": "Trades",
+          "cachedResultUrl": "https://airtable.com/app8b1UCtWtKJI5gg/tblemVjj89yUgby1E"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Symbol": "={{ $json.symbol }}",
+            "Type": "={{ $json.type }}",
+            "Underlying": "={{ $json.underlying }}",
+            "Strike": "={{ $json.strike_price }}",
+            "Entry Price": "={{ $json.mid }}",
+            "Current Price": "={{ $json.mid }}",
+            "Ask": "={{ $json.ask }}",
+            "Volume": "={{ $json.volume }}",
+            "OI": "={{ $json.open_interest }}",
+            "Delta": "={{ $json.open_interest }}",
+            "Status": "Active",
+            "Expiration Date": "={{ $json.expiration_date }}",
+            "Entry Image": "={{ $json.entryImageBase64 }}",
+            "Last Goal Achieved": 0,
+            "Peak Price Today": "={{ $json.mid }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Symbol",
+              "displayName": "Symbol",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "PUT",
+                  "value": "PUT"
+                },
+                {
+                  "name": "CALL",
+                  "value": "CALL"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Underlying",
+              "displayName": "Underlying",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Strike",
+              "displayName": "Strike",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Entry Price",
+              "displayName": "Entry Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Current Price",
+              "displayName": "Current Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Peak Price Today",
+              "displayName": "Peak Price Today",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Ask",
+              "displayName": "Ask",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Volume",
+              "displayName": "Volume",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "OI",
+              "displayName": "OI",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Delta",
+              "displayName": "Delta",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Active",
+                  "value": "Active"
+                },
+                {
+                  "name": "Close",
+                  "value": "Close"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Expiration Date",
+              "displayName": "Expiration Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Exit Price",
+              "displayName": "Exit Price",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Profit",
+              "displayName": "Profit",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Close Date",
+              "displayName": "Close Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Close Reason",
+              "displayName": "Close Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Entry Image",
+              "displayName": "Entry Image",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Peak Image",
+              "displayName": "Peak Image",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Last Goal Achieved",
+              "displayName": "Last Goal Achieved",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1320,
+        0
+      ],
+      "id": "d2f12838-4679-4d66-8ae4-55b16afdb6e1",
+      "name": "Create Trade with Image",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "DcU2YW3xIshsSmKH",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "destinationKey": "entryImageBase64",
+        "options": {
+          "keepSource": "both"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        100
+      ],
+      "id": "6ba93214-a4e1-4a7b-8c90-4f6bd0ab9dfa",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "-1002921695759",
+        "binaryData": true,
+        "additionalFields": {
+          "caption": "=تنبيه صفقة جديدة: {{ $('Adapt API Response').item.json.underlying }} ${{ $('Adapt API Response').item.json.strike_price }}\n\nالهدف الاول عند {{ $('Adapt API Response').item.json.goal1 }}\nالهدف الثاني: {{ $('Adapt API Response').item.json.goal2 }}\nالهدف الثالث: {{ $('Adapt API Response').item.json.goal3 }}\nالهدف الرابع: {{ $('Adapt API Response').item.json.goal4 }}\nالهدف الخامس: {{ $('Adapt API Response').item.json.goal5 }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        200
+      ],
+      "id": "03a52ba4-d2a1-4ecd-b1e4-ed833daf655d",
+      "name": "Telegram",
+      "webhookId": "8ab29b78-87cc-41bc-8e49-72a48066cb13",
+      "credentials": {
+        "telegramApi": {
+          "id": "fMElMuUVgPDWgTXq",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "5669426889,785521111",
+        "text": "=error: {{ $json.error.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        300
+      ],
+      "id": "6bc617dd-5697-4b49-8174-96e3ee5b1f38",
+      "name": "Notify Admin",
+      "webhookId": "fcea445d-a8c8-4a3d-8e7f-28b42138ad47",
+      "credentials": {
+        "telegramApi": {
+          "id": "fMElMuUVgPDWgTXq",
+          "name": "Telegram account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Telegram Trigger": [
+      {
+        "json": {
+          "update_id": 549618039,
+          "message": {
+            "message_id": 2231,
+            "from": {
+              "id": 5669426889,
+              "is_bot": false,
+              "first_name": "TALAL",
+              "username": "SPURE_INDICATOR",
+              "language_code": "ar",
+              "is_premium": true
+            },
+            "chat": {
+              "id": 5669426889,
+              "first_name": "TALAL",
+              "username": "SPURE_INDICATOR",
+              "type": "private"
+            },
+            "date": 1757943250,
+            "text": "call spx 6615 2025-9-15"
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Command": {
+      "main": [
+        [
+          {
+            "node": "Search Options API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Options API": {
+      "main": [
+        [
+          {
+            "node": "Adapt API Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adapt API Response": {
+      "main": [
+        [
+          {
+            "node": "Call Image Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Image Generator": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Trade with Image": {
+      "main": [
+        []
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Create Trade with Image",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f2f8c7a2-72d7-4689-abc2-615e81c0ed44",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b036d84835e7556c560bea37ff33edb7c20ac2b65dd165fe92837c49995e063c"
+  },
+  "id": "RoKoOg4rbeA3H6S8",
+  "tags": []
+}

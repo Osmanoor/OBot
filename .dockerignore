@@ -1,0 +1,30 @@
+# Git files
+.git
+.gitignore
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# Python virtual environment
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# VS Code settings
+.vscode/
+
+# Local database and environment files
+trades.db
+trades.db-journal
+.env
+*.env.example
+
+# IDE and OS files
+.idea/
+*.DS_Store
