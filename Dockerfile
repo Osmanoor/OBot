@@ -1,9 +1,9 @@
 # Stage 1: Use the official Python image, matching the local development version
-FROM python:3.12-slim as base
+FROM python:3.12-slim AS base
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Install system dependencies required for pyppeteer/Chromium
 # This is for the Debian-based python:slim image
