@@ -10,6 +10,10 @@ def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
     """
     A dependency function to handle basic authentication.
     """
+    # --- DEBUG LOGGING ---
+    print(f"Auth attempt: User='{credentials.username}' | Expected User='{settings.ADMIN_USERNAME}'")
+    # --- END DEBUG LOGGING ---
+    
     correct_username = secrets.compare_digest(credentials.username, settings.ADMIN_USERNAME)
     correct_password = secrets.compare_digest(credentials.password, settings.ADMIN_PASSWORD)
     if not (correct_username and correct_password):
