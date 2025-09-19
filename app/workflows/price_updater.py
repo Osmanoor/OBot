@@ -26,9 +26,9 @@ async def fetch_and_process_quote(trade: database.Trade):
 
     if quote and quote.get("mid"):
         # --- FOR TESTING: Randomize the mid price ---
-        original_mid = quote["mid"]
-        randomized_mid = original_mid * random.uniform(0.7, 1.8) # +/- 2% change
-        quote["mid"] = round(randomized_mid, 2)
+        # original_mid = quote["mid"]
+        # randomized_mid = original_mid * random.uniform(0.7, 1.8) # +/- 2% change
+        # quote["mid"] = round(randomized_mid, 2)
         # --- END TESTING CODE ---
         return trade.id, quote
     
