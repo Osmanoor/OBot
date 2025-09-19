@@ -65,7 +65,7 @@ async def run_price_updater(peak_queue: queue.Queue):
                     print(f"{trade.symbol}: {new_price}")
                     if new_price != trade.current_price:
                         trade.current_price = new_price
-                        is_new_peak = new_price > trade.peak_price_today
+                        is_new_peak = new_price >= trade.peak_price_today + 0.1
                         
                         if is_new_peak:
                             trade.peak_price_today = new_price
