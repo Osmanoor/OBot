@@ -22,8 +22,6 @@ __pycache__/
 # Local database and environment files
 trades.db
 trades.db-journal
-.env
-*.env.example
 
 # IDE and OS files
 .idea/
