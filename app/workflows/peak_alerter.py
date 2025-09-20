@@ -17,17 +17,21 @@ def check_for_new_goal(trade: database.Trade) -> Tuple[int, str]:
     new_price = trade.peak_price_today
     last_goal = trade.last_goal_achieved
     new_goal = last_goal
-    caption = f"Price update for {trade.underlying} ${trade.strike}"
+    # New default caption for price updates
+    caption = f"⚪️ تحديث السعر (${trade.strike} ، {trade.underlying}) ⚪️"
 
     goals = {
         1: settings.GOAL_1_PERCENT, 2: settings.GOAL_2_PERCENT,
         3: settings.GOAL_3_PERCENT, 4: settings.GOAL_4_PERCENT,
         5: settings.GOAL_5_PERCENT
     }
+    # New goal achievement captions
     goal_captions = {
-        1: "تم تحقيق الهدف الاول", 2: "تم تحقيق الهدف الثاني",
-        3: "تم تحقيق الهدف الثالث", 4: "تم تحقيق الهدف الرابع",
-        5: "تم تحقيق الهدف الخامس"
+        1: "✅ تم تحقيق الهدف الاول .. نقطة خروج اساسية .. اذا حاب تكمل أمن الصفقة او حط امر المتابعه بفارق 30 - 60 سنت ✅",
+        2: "✅تم تحقيق الهدف الثاني أمن صفقة✅",
+        3: "✅تم تحقيق الهدف الثالث أمن صفقة✅",
+        4: "✅تم تحقيق الهدف الرابع أمن صفقة✅",
+        5: "✅تم تحقيق الهدف الخامس أمن صفقة اذا بتكمل على مسؤليتك الشخصية✅"
     }
 
     # Check goals in descending order

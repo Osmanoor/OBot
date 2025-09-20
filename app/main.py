@@ -13,6 +13,10 @@ from . import database, auth
 from .workflows import trade_initiator, price_updater, peak_alerter
 from .scheduler import setup_scheduler
 from .websocket import manager
+from .workflows.weekly_reporter import run_weekly_report
+from .workflows.monthly_reporter import run_monthly_report
+from .workflows.yearly_reporter import run_yearly_report
+
 
 # Create a shared queue for communication between the producer and consumer
 peak_queue = queue.Queue()
@@ -30,14 +34,32 @@ async def lifespan(app: FastAPI):
 
     # Start the background tasks
     db_session = database.SessionLocal()
-    asyncio.create_task(price_updater.run_price_updater(peak_queue))
-    asyncio.create_task(peak_alerter.run_peak_alerter(db_session, peak_queue))
+    
+    # Start the background tasks and keep a reference to them
+    tasks = [
+        asyncio.create_task(price_updater.run_price_updater(peak_queue)),
+        asyncio.create_task(peak_alerter.run_peak_alerter(db_session, peak_queue))
+    ]
     print("Background tasks (price_updater, peak_alerter) started.")
+    
+    # # It's better to run one-off tasks like this without blocking startup
+    # asyncio.create_task(run_weekly_report())
+    # asyncio.create_task(run_monthly_report())
+    # asyncio.create_task(run_yearly_report())
     
     yield
     
     # Code to run on shutdown
     print("Application shutdown...")
+    
+    # Cancel all background tasks
+    for task in tasks:
+        task.cancel()
+    
+    # Wait for tasks to be cancelled
+    await asyncio.gather(*tasks, return_exceptions=True)
+    print("Background tasks cancelled.")
+    
     scheduler.shutdown()
     db_session.close()
     print("Scheduler and DB session closed.")

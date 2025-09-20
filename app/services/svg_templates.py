@@ -3,7 +3,7 @@ from typing import Dict, Any
 def get_trade_alert_svg(data: Dict[str, Any]) -> str:
     """
     Generates the SVG for a new trade or a peak price update.
-    This is adapted from the 'Image_Generator.json' workflow.
+    This is a direct translation of the original n8n workflow's template.
     """
     # --- Data Preparation & Formatting ---
     is_price_profit = data.get("price_change_value", 0) >= 0
@@ -16,7 +16,6 @@ def get_trade_alert_svg(data: Dict[str, Any]) -> str:
     # Format expiration date
     exp_date = data.get("expiration_date", "N/A")
     try:
-        # Assuming it's a datetime object
         formatted_exp_date = exp_date.strftime('%d %b %y')
     except AttributeError:
         formatted_exp_date = "Invalid Date"
@@ -29,6 +28,9 @@ def get_trade_alert_svg(data: Dict[str, Any]) -> str:
     underlying_price_string = f"{data.get('underlying_price', 0):.2f}"
     underlying_percent_string = f"{'+' if is_underlying_profit else ''}{data.get('underlying_change_percent', 0):.2f}%"
     footer_status_string = f"{data.get('status', 'N/A')}, {data.get('time', 'N/A')} ET"
+    formatted_open_interest = f"{data.get('open_interest', 0):,}"
+    formatted_volume = f"{data.get('volume', 0):,}"
+    formatted_underlying_symbol = str(data.get('underlying', 'N/A')).replace('W', '')
 
     svg_template = f"""
     <svg width="632" height="216" viewBox="0 0 632 216" xmlns="http://www.w3.org/2000/svg">
@@ -50,6 +52,9 @@ def get_trade_alert_svg(data: Dict[str, Any]) -> str:
             </g>
             <text x="55" y="48" class="text header-main">{data.get('underlying', 'N/A')} ${data.get('strike_price', 0)}</text>
             <text x="55" y="70" class="text header-sub">{header_sub_text}</text>
+            <g transform="translate(580, 28) scale(1.2)">
+                <path d="M19 14v3h3v2h-3.001L19 22h-2l-.001-3H14v-2h3v-3h2zm1.243-9.243c2.262 2.268 2.34 5.88.236 8.235l-1.42-1.418c1.331-1.524 1.261-3.914-.232-5.404-1.503-1.499-3.92-1.563-5.49-.153l-1.335 1.198-1.336-1.197c-1.575-1.412-3.991-1.35-5.494.154-1.49 1.49-1.565 3.875-.192 5.451l8.432 8.446L12 21.485 3.52 12.993c-2.104-2.356-2.025-5.974.236-8.236 2.265-2.264 5.888-2.34 8.244-.228 2.349-2.109 5.979-2.039 8.242.228z" fill="#FFFFFF"/>
+            </g>
         </g>
         <g id="main-price" transform="translate(25, 0)">
             <text x="-6" y="136" class="text price-large">{data.get('last_price', 0):.2f}</text>
@@ -59,17 +64,23 @@ def get_trade_alert_svg(data: Dict[str, Any]) -> str:
             <text x="420" y="100" class="text stat-label">Mid</text>
             <text x="575" y="100" class="text stat-value">{data.get('mid_price', 0):.2f}</text>
             <text x="420" y="130" class="text stat-label">Open Int.</text>
-            <text x="575" y="130" class="text stat-value">{data.get('open_interest', 0):,}</text>
+            <text x="575" y="130" class="text stat-value">{formatted_open_interest}</text>
             <text x="420" y="160" class="text stat-label">Vol.</text>
-            <text x="575" y="160" class="text stat-value">{data.get('volume', 0):,}</text>
+            <text x="575" y="160" class="text stat-value">{formatted_volume}</text>
+            <rect x="585" y="85" width="25" height="80" rx="5" fill="#1E2A38" />
+            <polygon points="592,124 602,124 597,129" fill="#FFFFFF"/>
         </g>
         <g id="footer">
             <text x="25" y="202" class="text footer-text">
-                {data.get('underlying', 'N/A')}
+                {formatted_underlying_symbol}
                 <tspan class="footer-change">{underlying_price_string}</tspan> 
                 <tspan class="footer-change">{underlying_percent_string}</tspan>
             </text>
             <text x="570" y="202" class="text footer-text" text-anchor="end">{footer_status_string}</text>
+            <rect x="580" y="186" width="30" height="22" rx="5" fill="#15294A" />
+            <g transform="translate(588, 188) rotate(10)">
+                <path fill="#448AFF" d="M9.5 6.5L10 0H9L2 9.5h4.5L6 16h1l7-9.5z"/>
+            </g>
         </g>
     </svg>
     """
@@ -182,83 +193,3 @@ def get_daily_report_html(
     </html>
     """
     return composite_html
-
-def get_weekly_report_svg(summary_data: Dict[str, Any], trade_rows: list) -> str:
-    """
-    Generates the SVG for the weekly summary report.
-    Adapted from 'Weekly_Reporting.json'.
-    """
-    # Dynamically build the SVG table rows
-    table_rows_svg = ''
-    row_height = 45
-    start_y = 320
-    mid_point = (len(trade_rows) + 1) // 2
-    for i in range(mid_point):
-        y_pos = start_y + (i * row_height)
-        
-        # Left column trade
-        left_trade = trade_rows[i]
-        peak_price_display_left = f'<tspan fill="#4CAF50">{left_trade["peakPrice"]}</tspan>' if left_trade["isWinner"] else f'<tspan fill="#F44336">{left_trade["peakPrice"]}</tspan>'
-        table_rows_svg += f'<text x="75" y="{y_pos}" class="text table-text" text-anchor="middle">{left_trade["symbol"]}</text>'
-        table_rows_svg += f'<text x="210" y="{y_pos}" class="text table-text" text-anchor="middle">{left_trade["entryPrice"]}</text>'
-        table_rows_svg += f'<text x="345" y="{y_pos}" class="text table-text" text-anchor="middle">{peak_price_display_left}</text>'
-        table_rows_svg += f'<line x1="10" y1="{y_pos + 15}" x2="410" y2="{y_pos + 15}" stroke="#FFFFFF" stroke-opacity="0.2" />'
-
-        # Right column trade (if it exists)
-        if i + mid_point < len(trade_rows):
-            right_trade = trade_rows[i + mid_point]
-            peak_price_display_right = f'<tspan fill="#4CAF50">{right_trade["peakPrice"]}</tspan>' if right_trade["isWinner"] else f'<tspan fill="#F44336">{right_trade["peakPrice"]}</tspan>'
-            table_rows_svg += f'<text x="485" y="{y_pos}" class="text table-text" text-anchor="middle">{right_trade["symbol"]}</text>'
-            table_rows_svg += f'<text x="620" y="{y_pos}" class="text table-text" text-anchor="middle">{right_trade["entryPrice"]}</text>'
-            table_rows_svg += f'<text x="755" y="{y_pos}" class="text table-text" text-anchor="middle">{peak_price_display_right}</text>'
-            table_rows_svg += f'<line x1="420" y1="{y_pos + 15}" x2="820" y2="{y_pos + 15}" stroke="#FFFFFF" stroke-opacity="0.2" />'
-
-    # Main SVG template
-    svg_template = f"""
-    <svg width="830" height="1000" viewBox="0 0 830 1000" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-        <style>
-            .text {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; fill: #FFFFFF; }}
-            .title {{ font-size: 48px; font-weight: bold; text-anchor: middle; }}
-            .date {{ font-size: 24px; text-anchor: middle; }}
-            .subtitle {{ font-size: 40px; font-weight: bold; text-anchor: middle; }}
-            .table-header {{ font-size: 20px; font-weight: bold; text-anchor: middle; fill: #000000; }}
-            .table-text {{ font-size: 22px; font-weight: 500; }}
-            .summary-label {{ font-size: 28px; font-weight: bold; text-anchor: end; }}
-            .summary-value {{ font-size: 28px; font-weight: bold; text-anchor: start; }}
-            .footer-text {{ font-size: 16px; text-anchor: end; fill: #A0A0A0; }}
-        </style>
-
-        <rect width="100%" height="100%" fill="#131722" />
-        <image xlink:href="data:image/jpeg;base64,{summary_data['background_image_b64']}" x="0" y="0" width="100%" height="100%" opacity="0.5" preserveAspectRatio="xMidYMid slice" />
-
-        <g>
-            <text x="415" y="80" class="text title">التقرير الأسبوعي</text>
-            <text x="415" y="120" class="text date">{summary_data['date_range']}</text>
-            <text x="415" y="200" class="text subtitle">{summary_data['bot_name']}</text>
-
-            <rect x="10" y="250" width="810" height="40" fill="#E0E0E0" />
-            <text x="75" y="278" class="text table-header">الشركه</text>
-            <text x="210" y="278" class="text table-header">سعر العقد</text>
-            <text x="345" y="278" class="text table-header">اعلى سعر وصل له</text>
-            <text x="485" y="278" class="text table-header">الشركه</text>
-            <text x="620" y="278" class="text table-header">سعر العقد</text>
-            <text x="755" y="278" class="text table-header">اعلى سعر وصل له</text>
-            
-            {table_rows_svg}
-            
-            <g transform="translate(0, {start_y + (mid_point * row_height) + 40})">
-                <text x="780" y="50" class="text summary-label">إجمالي عدد الصفقات:</text>
-                <text x="450" y="50" class="text summary-value">{summary_data['total_trades']}</text>
-                <text x="780" y="100" class="text summary-label">الصفقات الناجحه:</text>
-                <text x="450" y="100" class="text summary-value">{summary_data['winning_trades']}</text>
-                <text x="780" y="150" class="text summary-label">الصفقات الخاسره:</text>
-                <text x="450" y="150" class="text summary-value">{summary_data['losing_trades']}</text>
-                <text x="780" y="200" class="text summary-label">أرباح الأسبوع ✅:</text>
-                <text x="450" y="200" class="text summary-value" fill="#4CAF50">$ {summary_data['total_profit']:,.2f}</text>
-                <text x="780" y="250" class="text summary-label">خسائر الأسبوع ❌:</text>
-                <text x="450" y="250" class="text summary-value" fill="#F44336">$ {abs(summary_data['total_loss']):,.2f}</text>
-            </g>
-        </g>
-    </svg>
-    """
-    return svg_template

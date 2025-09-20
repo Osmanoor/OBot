@@ -54,6 +54,29 @@ class TelegramService:
             print(f"Error sending Telegram photo: {e}")
             return False
 
+    def send_document(self, document_data: bytes, filename: str, caption: Optional[str] = None) -> bool:
+        """
+        Sends a document (e.g., PDF) to the configured chat ID.
+        
+        Args:
+            document_data: The binary content of the file.
+            filename: The name of the file (e.g., "report.pdf").
+            caption: Optional text to send with the document.
+        """
+        url = f"{self.base_url}/sendDocument"
+        files = {"document": (filename, document_data)}
+        data = {"chat_id": self.chat_id}
+        if caption:
+            data["caption"] = caption
+
+        try:
+            response = requests.post(url, files=files, data=data)
+            response.raise_for_status()
+            return response.json().get("ok", False)
+        except requests.exceptions.RequestException as e:
+            print(f"Error sending Telegram document: {e}")
+            return False
+
 # Create a single instance of the service to be used throughout the app
 telegram_service = TelegramService(
     bot_token=settings.TELEGRAM_BOT_TOKEN,

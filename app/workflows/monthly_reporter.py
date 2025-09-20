@@ -3,6 +3,7 @@ import base64
 from datetime import datetime, timedelta, date
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+import calendar
 
 from .. import database
 from ..services.telegram_service import telegram_service
@@ -10,26 +11,29 @@ from ..services.local_image_generator import image_generator
 from ..services.report_templates import get_report_svg, wrap_svg_in_html
 from ..config import settings
 
-async def run_weekly_report():
+async def run_monthly_report():
     """
-    Generates and sends a weekly report for all trades closed in the last 7 days.
+    Generates and sends a monthly report for all trades closed in the last month.
     """
-    print("Running weekly report...")
+    print("Running monthly report...")
     db = database.SessionLocal()
     try:
-        start_date = date.today() - timedelta(days=7)
-        trades_last_week = db.query(database.Trade).filter(
+        today = date.today()
+        first_day_of_month = today.replace(day=1)
+
+        trades_this_month = db.query(database.Trade).filter(
             database.Trade.status == database.TradeStatus.CLOSED,
-            func.date(database.Trade.closed_at) >= start_date
+            func.date(database.Trade.closed_at) >= first_day_of_month,
+            func.date(database.Trade.closed_at) <= today
         ).all()
 
-        if not trades_last_week:
-            print("No trades closed in the last 7 days. Weekly report complete.")
+        if not trades_this_month:
+            print("No trades closed this month. Monthly report complete.")
             return
 
         # 1. Aggregate data and prepare trade rows
         summary = {
-            "total_trades": len(trades_last_week),
+            "total_trades": len(trades_this_month),
             "winning_trades": 0,
             "losing_trades": 0,
             "total_profit": 0.0,
@@ -37,7 +41,7 @@ async def run_weekly_report():
         }
         trade_rows = []
 
-        for trade in trades_last_week:
+        for trade in trades_this_month:
             profit = (trade.exit_price or 0) - trade.entry_price
             is_winner = profit > 0
             
@@ -59,9 +63,8 @@ async def run_weekly_report():
         summary["total_profit"] *= 100
         summary["total_loss"] *= 100
         
-        today = datetime.now()
-        to_date = today.strftime('%B %d')
-        from_date = (today - timedelta(days=6)).strftime('%d')
+        month_name = today.strftime('%B')
+        year = today.year
 
         try:
             with open(settings.BACKGROUND_IMAGE_PATH, "rb") as image_file:
@@ -72,29 +75,29 @@ async def run_weekly_report():
 
         summary_data_for_template = {
             **summary,
-            "date_range": f"{from_date} - {to_date}, {today.year}",
+            "date_range": f"{month_name}, {year}",
             "bot_name": settings.BOT_NAME,
             "background_image_b64": background_image_b64
         }
 
         # 3. Generate the report SVG and render it
-        report_svg = get_report_svg(summary_data_for_template, trade_rows, "التقرير الأسبوعي")
+        report_svg = get_report_svg(summary_data_for_template, trade_rows, "التقرير الشهري")
         report_html = wrap_svg_in_html(report_svg)
         
         report_pdf = await image_generator.generate_pdf(report_html)
 
         # 4. Send the report to Telegram
         if report_pdf:
-            today_str = datetime.now().strftime("%Y-%m-%d")
-            file_name = f"weekly_report_{today_str}.pdf"
+            today_str = datetime.now().strftime("%Y-%m")
+            file_name = f"monthly_report_{today_str}.pdf"
             telegram_service.send_document(
                 document_data=report_pdf,
                 filename=file_name,
-                caption="التقرير الاسبوعي"
+                caption="التقرير الشهري"
             )
-            print("Sent weekly report to Telegram.")
+            print("Sent monthly report to Telegram.")
 
     except Exception as e:
-        print(f"An error occurred during the weekly report: {e}")
+        print(f"An error occurred during the monthly report: {e}")
     finally:
         db.close()

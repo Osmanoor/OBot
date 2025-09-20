@@ -26,11 +26,11 @@ class Settings:
     # Stop Loss (as a percentage of entry price)
     STOP_LOSS_PERCENT: float = float(os.getenv("STOP_LOSS_PERCENT", 50.0))
 
-    # Database URL for Docker container
-    DATABASE_URL: str = "sqlite:///data/trades.db"
+    # Database URL - defaults to a local file, can be overridden for Docker
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///trades.db")
 
     # Report Configuration
-    BACKGROUND_IMAGE_B64: str = os.getenv("BACKGROUND_IMAGE_B64")
+    BACKGROUND_IMAGE_PATH: str = "app/static/background.jpg"
     BOT_NAME: str = os.getenv("BOT_NAME", "Option Bot")
 
     # Pyppeteer Configuration

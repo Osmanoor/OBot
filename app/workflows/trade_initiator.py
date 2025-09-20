@@ -108,13 +108,20 @@ async def initiate_trade(form_data: Dict[str, Any], db: Session):
     print(f"Successfully saved new trade {new_trade.id} to the database.")
 
     # 7. Send the alert to Telegram
+    header = ""
+    if contract['type'] == 'CALL':
+        header = f"🟢 دخول عقد جديد CALL 🟢"
+    else:
+        header = f"🔴 دخول عقد جديد PUT 🔴"
+
     caption = (
-        f"🚨 New Trade Alert: {contract['underlying']} ${contract['strike_price']} {contract['type']} 🚨\n\n"
-        f"Goal 1: {goals['goal1']:.2f}\n"
-        f"Goal 2: {goals['goal2']:.2f}\n"
-        f"Goal 3: {goals['goal3']:.2f}\n"
-        f"Goal 4: {goals['goal4']:.2f}\n"
-        f"Goal 5: {goals['goal5']:.2f}"
+        f"{header}\n"
+        f"({contract['underlying']}, ${contract['strike_price']})\n"
+        f"(الهدف الاول: {goals['goal1']:.2f})\n"
+        f"(الهدف الثاني: {goals['goal2']:.2f})\n"
+        f"(الهدف الثالث: {goals['goal3']:.2f})\n"
+        f"(الهدف الرابع: {goals['goal4']:.2f})\n"
+        f"(الهدف الخامس: {goals['goal5']:.2f})"
     )
     telegram_service.send_photo(photo_data=image_bytes, caption=caption)
     print("Sent trade alert to Telegram.")

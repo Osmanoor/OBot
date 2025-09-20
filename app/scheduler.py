@@ -3,6 +3,8 @@ from apscheduler.triggers.cron import CronTrigger
 
 from .workflows.daily_reporter import run_daily_report
 from .workflows.weekly_reporter import run_weekly_report
+from .workflows.monthly_reporter import run_monthly_report
+from .workflows.yearly_reporter import run_yearly_report
 
 # Create a scheduler instance
 scheduler = AsyncIOScheduler()
@@ -29,5 +31,23 @@ def setup_scheduler():
         replace_existing=True,
     )
     
+    # Schedule the monthly report to run on the last Friday of the month at 22:15
+    scheduler.add_job(
+        run_monthly_report,
+        trigger=CronTrigger(day_of_week="fri", day="last", hour=22, minute=15),
+        id="monthly_report_job",
+        name="Monthly Report",
+        replace_existing=True,
+    )
+
+    # Schedule the yearly report to run on the last Friday of December at 22:20
+    scheduler.add_job(
+        run_yearly_report,
+        trigger=CronTrigger(month=12, day_of_week="fri", day="last", hour=22, minute=20),
+        id="yearly_report_job",
+        name="Yearly Report",
+        replace_existing=True,
+    )
+
     print("Scheduler setup complete. Jobs are scheduled.")
     return scheduler

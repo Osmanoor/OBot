@@ -6,7 +6,9 @@ from datetime import datetime
 
 from .. import database
 from ..services.marketdata_service import marketdata_service
+from ..services.telegram_service import telegram_service
 from ..websocket import manager
+from ..config import settings
 
 async def fetch_and_process_quote(trade: database.Trade):
     """
@@ -62,6 +64,27 @@ async def run_price_updater(peak_queue: queue.Queue):
                         continue
 
                     new_price = quote["mid"]
+                    
+                    # --- BEGIN STOP LOSS CHECK ---
+                    stop_loss_price = trade.entry_price * (1 - settings.STOP_LOSS_PERCENT / 100)
+                    if new_price <= stop_loss_price:
+                        print(f"Stop loss triggered for {trade.symbol} at {new_price}")
+                        trade.status = database.TradeStatus.CLOSED
+                        trade.exit_price = new_price
+                        trade.closed_at = datetime.utcnow()
+                        trade.close_reason = "Stop Loss"
+                        
+                        telegram_service.send_message(f"❌ضرب وقف الخسارة❌\n{trade.symbol}")
+                        
+                        await manager.broadcast({
+                            "type": "trade_closed",
+                            "trade_id": trade.id
+                        })
+                        
+                        # Skip further processing for this trade
+                        continue
+                    # --- END STOP LOSS CHECK ---
+
                     print(f"{trade.symbol}: {new_price}")
                     if new_price != trade.current_price:
                         trade.current_price = new_price

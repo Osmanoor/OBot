@@ -18,7 +18,13 @@ cd <your_project_directory>
 
 ### 1.3. Prepare Configuration and Data Directory
 **a. Create the `.env` file:**
-Create a file named `.env` in the root of the project directory. This file will contain all your secrets and server-specific settings. Copy the contents of `.env.example` and fill in the correct values for this server.
+Create a file named `.env` in the root of the project directory. This file will contain all your secrets and server-specific settings. Fill it with the required values.
+
+**Crucially, for a Docker deployment, you must add the following line to this `.env` file:**
+```
+DATABASE_URL=sqlite:///data/trades.db
+```
+This tells the application inside the container to save the database to the persistent `data` volume.
 
 **b. Create a data directory:**
 The SQLite database (`trades.db`) will be stored outside the container to ensure data persists across updates. Create a directory for it.

@@ -41,12 +41,20 @@ async def run_daily_report():
                 print(f"Skipping trade {trade.id} due to invalid image data.")
                 continue
 
+            # Read and encode the background image
+            try:
+                with open(settings.BACKGROUND_IMAGE_PATH, "rb") as image_file:
+                    background_image_b64 = base64.b64encode(image_file.read()).decode("utf-8")
+            except FileNotFoundError:
+                print(f"Background image not found at {settings.BACKGROUND_IMAGE_PATH}. Using empty background.")
+                background_image_b64 = ""
+
             # Generate the report HTML
             report_html = get_daily_report_html(
                 is_successful=is_successful,
                 entry_image_b64=entry_image_b64,
                 peak_image_b64=peak_image_b64,
-                background_image_b64=settings.BACKGROUND_IMAGE_B64
+                background_image_b64=background_image_b64
             )
 
             # Render the HTML to a PNG
