@@ -36,7 +36,8 @@ def check_for_new_goal(trade: database.Trade) -> Tuple[int, str]:
 
     # Check goals in descending order
     for i in range(5, 0, -1):
-        if new_price >= entry_price * (1 + goals[i] / 100) and last_goal < i:
+        goal_price = entry_price * (1 + goals[i] / 100)
+        if round(new_price, 2) >= round(goal_price, 2) and last_goal < i:
             new_goal = i
             caption = goal_captions[i]
             break # Found the highest new goal, no need to check lower ones
