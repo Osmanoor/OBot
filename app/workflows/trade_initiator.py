@@ -35,9 +35,6 @@ async def initiate_trade(form_data: Dict[str, Any], db: Session):
 
     if expiration:
         api_params["expiration"] = expiration
-    else:
-        # Default to today if no expiration is provided
-        api_params["expiration"] = datetime.now().strftime('%Y-%m-%d')
 
     if min_volume and min_volume.isdigit():
         api_params["minVolume"] = int(min_volume)
