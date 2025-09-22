@@ -66,23 +66,23 @@ async def run_price_updater(peak_queue: queue.Queue):
                     new_price = quote["mid"]
                     
                     # --- BEGIN STOP LOSS CHECK ---
-                    stop_loss_price = trade.entry_price * (1 - settings.STOP_LOSS_PERCENT / 100)
-                    if new_price <= stop_loss_price:
-                        print(f"Stop loss triggered for {trade.symbol} at {new_price}")
-                        trade.status = database.TradeStatus.CLOSED
-                        trade.exit_price = new_price
-                        trade.closed_at = datetime.utcnow()
-                        trade.close_reason = "Stop Loss"
+                    # stop_loss_price = trade.entry_price * (1 - settings.STOP_LOSS_PERCENT / 100)
+                    # if new_price <= stop_loss_price:
+                    #     print(f"Stop loss triggered for {trade.symbol} at {new_price}")
+                    #     trade.status = database.TradeStatus.CLOSED
+                    #     trade.exit_price = new_price
+                    #     trade.closed_at = datetime.utcnow()
+                    #     trade.close_reason = "Stop Loss"
                         
-                        telegram_service.send_message(f"❌ضرب وقف الخسارة❌\n{trade.symbol}")
+                    #     telegram_service.send_message(f"❌ضرب وقف الخسارة❌\n{trade.symbol}")
                         
-                        await manager.broadcast({
-                            "type": "trade_closed",
-                            "trade_id": trade.id
-                        })
+                    #     await manager.broadcast({
+                    #         "type": "trade_closed",
+                    #         "trade_id": trade.id
+                    #     })
                         
-                        # Skip further processing for this trade
-                        continue
+                    #     # Skip further processing for this trade
+                    #     continue
                     # --- END STOP LOSS CHECK ---
 
                     print(f"{trade.symbol}: {new_price}")

@@ -16,7 +16,7 @@ def setup_scheduler():
     # Schedule the daily report to run at 22:05 UTC (after market close)
     scheduler.add_job(
         run_daily_report,
-        trigger=CronTrigger(hour=20, minute=35, timezone='UTC'),
+        trigger=CronTrigger(hour=20, minute=5, timezone='UTC'),
         id="daily_report_job",
         name="Daily Report",
         replace_existing=True,
@@ -25,7 +25,7 @@ def setup_scheduler():
     # Schedule the weekly report to run on Fridays at 22:10 UTC
     scheduler.add_job(
         run_weekly_report,
-        trigger=CronTrigger(day_of_week="fri", hour=20, minute=40, timezone='UTC'),
+        trigger=CronTrigger(day_of_week="fri", hour=20, minute=10, timezone='UTC'),
         id="weekly_report_job",
         name="Weekly Report",
         replace_existing=True,
@@ -34,7 +34,7 @@ def setup_scheduler():
     # Schedule the monthly report to run on the last Friday of the month at 22:15 UTC
     scheduler.add_job(
         run_monthly_report,
-        trigger=CronTrigger(day_of_week="fri", day="last", hour=20, minute=45, timezone='UTC'),
+        trigger=CronTrigger(day_of_week="fri", day="last", hour=20, minute=15, timezone='UTC'),
         id="monthly_report_job",
         name="Monthly Report",
         replace_existing=True,
@@ -43,7 +43,7 @@ def setup_scheduler():
     # Schedule the yearly report to run on the last Friday of December at 22:20 UTC
     scheduler.add_job(
         run_yearly_report,
-        trigger=CronTrigger(month=12, day_of_week="fri", day="last", hour=20, minute=50, timezone='UTC'),
+        trigger=CronTrigger(month=12, day_of_week="fri", day="last", hour=20, minute=10, timezone='UTC'),
         id="yearly_report_job",
         name="Yearly Report",
         replace_existing=True,
