@@ -111,6 +111,7 @@ async def initiate_trade(form_data: Dict[str, Any], db: Session):
     else:
         header = f"🔴 دخول عقد جديد PUT 🔴"
 
+    stop_loss_price = entry_price * 0.5
     caption = (
         f"{header}\n"
         f"({contract['underlying']}, ${contract['strike_price']})\n"
@@ -118,7 +119,8 @@ async def initiate_trade(form_data: Dict[str, Any], db: Session):
         f"(الهدف الثاني: {goals['goal2']:.2f})\n"
         f"(الهدف الثالث: {goals['goal3']:.2f})\n"
         f"(الهدف الرابع: {goals['goal4']:.2f})\n"
-        f"(الهدف الخامس: {goals['goal5']:.2f})"
+        f"(الهدف الخامس: {goals['goal5']:.2f})\n"
+        f"وقف الخسارة: {stop_loss_price:.2f}"
     )
     telegram_service.send_photo(photo_data=image_bytes, caption=caption)
     print("Sent trade alert to Telegram.")
