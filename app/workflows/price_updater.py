@@ -67,7 +67,7 @@ async def run_price_updater(peak_queue: queue.Queue):
 
                     # --- BEGIN EXPIRATION CHECK ---
                     # Compare the full expiration datetime with the current datetime
-                    if trade.expiration_date < datetime.utcnow():
+                    if False:
                         print(f"Trade {trade.symbol} has expired. Closing trade.")
                         trade.status = database.TradeStatus.CLOSED
                         trade.exit_price = new_price
