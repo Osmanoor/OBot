@@ -73,9 +73,7 @@ async def run_price_updater(peak_queue: queue.Queue):
                         trade.exit_price = new_price
                         trade.closed_at = datetime.utcnow()
                         trade.close_reason = "Expired"
-                        
-                        telegram_service.send_message(f"⌛️انتهى وقت العقد⌛️\n{trade.symbol}")
-                        
+                                                
                         await manager.broadcast({
                             "type": "trade_closed",
                             "trade_id": trade.id
