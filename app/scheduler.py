@@ -16,7 +16,7 @@ def setup_scheduler():
     # Schedule the daily report to run at 22:05 UTC (after market close)
     scheduler.add_job(
         run_daily_report,
-        trigger=CronTrigger(hour=20, minute=35, timezone='UTC'),
+        trigger=CronTrigger(hour=20, minute=45, timezone='UTC'),
         id="daily_report_job",
         name="Daily Report",
         replace_existing=True,
