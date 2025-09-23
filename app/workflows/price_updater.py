@@ -64,6 +64,26 @@ async def run_price_updater(peak_queue: queue.Queue):
                         continue
 
                     new_price = quote["mid"]
+
+                    # --- BEGIN EXPIRATION CHECK ---
+                    # Compare the full expiration datetime with the current datetime
+                    if trade.expiration_date > datetime.utcnow():
+                        print(f"Trade {trade.symbol} has expired. Closing trade.")
+                        trade.status = database.TradeStatus.CLOSED
+                        trade.exit_price = new_price
+                        trade.closed_at = datetime.utcnow()
+                        trade.close_reason = "Expired"
+                        
+                        telegram_service.send_message(f"⌛️انتهى وقت العقد⌛️\n{trade.symbol}")
+                        
+                        await manager.broadcast({
+                            "type": "trade_closed",
+                            "trade_id": trade.id
+                        })
+                        
+                        # Skip further processing for this trade
+                        continue
+                    # --- END EXPIRATION CHECK ---
                     
                     # --- BEGIN STOP LOSS CHECK ---
                     stop_loss_price = trade.entry_price * (1 - settings.STOP_LOSS_PERCENT / 100)

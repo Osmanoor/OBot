@@ -63,7 +63,7 @@ async def initiate_trade(form_data: Dict[str, Any], db: Session):
     image_data = {
         "underlying": contract["underlying"],
         "strike_price": contract["strike_price"],
-        "expiration_date": datetime.fromtimestamp(contract["expiration_date"]),
+        "expiration_date": datetime.utcfromtimestamp(contract["expiration_date"]),
         "type": contract["type"],
         "last_price": entry_price,
         "mid_price": entry_price,
@@ -94,7 +94,7 @@ async def initiate_trade(form_data: Dict[str, Any], db: Session):
         entry_price=entry_price,
         current_price=entry_price,
         peak_price_today=entry_price,
-        expiration_date=datetime.fromtimestamp(contract["expiration_date"]),
+        expiration_date=datetime.utcfromtimestamp(contract["expiration_date"]),
         status=database.TradeStatus.ACTIVE,
         entry_image=image_bytes.hex(), # Store image bytes as hex string
         last_goal_achieved=0
