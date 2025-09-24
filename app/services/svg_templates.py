@@ -161,7 +161,7 @@ def get_daily_report_html(
             left: 0;
             width: 100%;
             height: 100%;
-            opacity: 0.5; /* Background is more subtle */
+            opacity: 1;
             z-index: 1;
         }}
         .content {{
@@ -179,6 +179,7 @@ def get_daily_report_html(
         .trade-image {{
             width: 632px;
             height: 216px;
+            opacity: 0.75;
         }}
     </style>
     </head>
