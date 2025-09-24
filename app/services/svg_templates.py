@@ -132,7 +132,7 @@ def get_daily_report_html(
         # For failed trades, we overlay a "FAILED" stamp.
         content_html = f"""
             <div style="position: relative; display: flex; justify-content: center; align-items: center;">
-                <img class="trade-image" src="{peak_image_data_url}" style="opacity: 0.6;" />
+                <img class="trade-image" src="{entry_image_data_url}" />
                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-15deg); font-size: 80px; font-weight: bold; color: rgba(245, 66, 108, 0.8); border: 5px solid rgba(245, 66, 108, 0.8); padding: 10px 20px; border-radius: 10px;">FAILED</div>
             </div>
         """
@@ -161,7 +161,7 @@ def get_daily_report_html(
             left: 0;
             width: 100%;
             height: 100%;
-            opacity: 0.5; /* Background is more subtle */
+            opacity: 1; 
             z-index: 1;
         }}
         .content {{
@@ -179,6 +179,7 @@ def get_daily_report_html(
         .trade-image {{
             width: 632px;
             height: 216px;
+            opacity: 0.75;
         }}
     </style>
     </head>

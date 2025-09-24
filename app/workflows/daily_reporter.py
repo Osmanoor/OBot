@@ -31,8 +31,10 @@ async def run_daily_report():
         print(f"Found {len(trades_closed_today)} trades closed today.")
 
         for trade in trades_closed_today:
-            is_successful = (trade.exit_price or 0) > trade.entry_price
-            
+            # New success criteria: Did the peak price reach the first goal?
+            first_goal_price = trade.entry_price * (1 + settings.GOAL_1_PERCENT / 100)
+            is_successful = trade.peak_price_today >= first_goal_price
+
             # Decode hex strings from DB back to bytes, then encode to base64 for HTML
             try:
                 entry_image_b64 = base64.b64encode(bytes.fromhex(trade.entry_image)).decode('utf-8')
@@ -65,14 +67,17 @@ async def run_daily_report():
             if report_image:
                 # Calculate profit percentage for the caption
                 profit_percent = 0
+                price_for_calculation = trade.peak_price_today if is_successful else trade.exit_price
+                price_type_text = "الأعلى" if is_successful else "الخروج"
+
                 if trade.entry_price > 0:
-                    profit_percent = ((trade.exit_price - trade.entry_price) / trade.entry_price) * 100
+                    profit_percent = ((price_for_calculation - trade.entry_price) / trade.entry_price) * 100
                 
                 status_text = "ناجحة" if is_successful else "خاسرة"
                 caption = (
                     f"صفقة {trade.underlying} {status_text}\n"
                     f"سعر الدخول: {trade.entry_price:.2f}\n"
-                    f"سعر الخروج: {trade.exit_price:.2f}\n"
+                    f"سعر {price_type_text}: {price_for_calculation:.2f}\n"
                     f"النسبة: {profit_percent:.1f}%"
                 )
                 
